@@ -1,5 +1,9 @@
 import "dotenv/config";
 
-export const SECRET_VARIABLES = {
-  PORT: process.env.PORT,
+interface Variables {
+  port: number;
+}
+
+export const SECRET_VARIABLES: Variables = {
+  port: Number(process.env.PORT) || 5040,
 };
