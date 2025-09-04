@@ -1,7 +1,8 @@
 import express from "express";
+import { SECRET_VARIABLES } from "./config/secret-variable.js";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = SECRET_VARIABLES.PORT;
 
 app.use(express.json());
 
