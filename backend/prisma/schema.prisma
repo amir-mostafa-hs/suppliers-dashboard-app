@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// user roles for access control
+enum Role {
+  USER
+  SUPPLIER
+  ADMIN
+  REVIEWER
+}
+
+// status of a supplier's application
+enum SupplierStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// User model
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  role       Role     @default(USER)
+  isSupplier Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations to other models
+  supplierProfile   SupplierProfile?
+  supplierDocuments SupplierDocument[]
+}
+
+// SupplierProfile model (one-to-one relation to User)
+model SupplierProfile {
+  id             String          @id @default(uuid())
+  supplierStatus SupplierStatus?
+  businessName   String
+  address        String
+  city           String
+  state          String
+  zipCode        String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+}
+
+// SupplierDocument model (one-to-many relation to User)
+model SupplierDocument {
+  id           String @id @default(uuid())
+  fileName     String
+  fileUrl      String
+  documentType String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}

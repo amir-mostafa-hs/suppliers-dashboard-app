@@ -3,3 +3,4 @@ node_modules
 *.env
 
 pgadmin-setup.json
+/src/generated/prisma
