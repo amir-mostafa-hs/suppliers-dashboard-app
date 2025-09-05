@@ -44,11 +44,11 @@ router.get("/profile", authenticateToken, getUserProfile);
 router.put("/profile", authenticateToken, updateUserProfile);
 
 /**
- * @URL : /user/profile
- * @Method : PUT
+ * @URL : /user/delete
+ * @Method : DELETE
  * @Status : PRIVATE
- * @Description : update a user's profile
+ * @Description : delete a user's profile
  */
-router.delete("/profile", authenticateToken, deleteUserProfile);
+router.delete("/delete", authenticateToken, deleteUserProfile);
 
 export default router;
