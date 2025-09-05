@@ -14,8 +14,8 @@ app.get("/", (req, res) => {
   res.send("Backend API is running 🚀");
 });
 
-// users endpoint
-app.use("/users", userRoutes);
+// user endpoint
+app.use("/user", userRoutes);
 
 app.listen(port, async () => {
   console.log(`Server is running on http://localhost:${port}`);
