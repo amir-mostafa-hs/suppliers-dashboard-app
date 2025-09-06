@@ -40,31 +40,32 @@ model User {
   updatedAt  DateTime @updatedAt
 
   // Relations to other models
-  supplierProfile   SupplierProfile?
-  supplierDocuments SupplierDocument[]
+  supplierProfile SupplierProfile?
 }
 
 // SupplierProfile model (one-to-one relation to User)
 model SupplierProfile {
-  id             String          @id @default(uuid())
-  supplierStatus SupplierStatus?
-  businessName   String
-  address        String
-  city           String
-  state          String
-  zipCode        String
+  id              String          @id @default(uuid())
+  supplierStatus  SupplierStatus? @default(PENDING)
+  rejectionReason String?
+  businessName    String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @unique
+  user      User               @relation(fields: [userId], references: [id])
+  userId    String             @unique
+  documents SupplierDocument[]
 }
 
 // SupplierDocument model (one-to-many relation to User)
 model SupplierDocument {
-  id           String @id @default(uuid())
-  fileName     String
-  fileUrl      String
-  documentType String
+  id       String  @id @default(uuid())
+  fileName String
+  fileUrl  String?
+  fileType String
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  supplierProfile   SupplierProfile @relation(fields: [supplierProfileId], references: [id], onDelete: Cascade)
+  supplierProfileId String
 }
