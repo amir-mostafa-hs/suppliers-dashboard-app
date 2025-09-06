@@ -1,9 +1,3 @@
-### **1. User Routes and Endpoints Documentation (Updated)**
-
-This document outlines the API endpoints for user management, including registration, login, and profile management, with a focus on updated security protocols and data handling.
-
----
-
 ### **API Documentation - User Management**
 
 | Document Type | API Documentation |
@@ -12,9 +6,11 @@ This document outlines the API endpoints for user management, including registra
 | Last Updated  | 06/09/2025        |
 | Status        | In Development    |
 
+This document outlines the API endpoints for user management, including registration, login, and profile management, with a focus on updated security protocols and data handling.
+
 ---
 
-#### **1. Register User**
+### **1. Register User**
 
 - **URL**: `/users/register`
 - **Method**: `POST`
@@ -34,7 +30,7 @@ This document outlines the API endpoints for user management, including registra
 
 ---
 
-#### **2. User Login**
+### **2. User Login**
 
 - **URL**: `/users/login`
 - **Method**: `POST`
@@ -53,7 +49,7 @@ This document outlines the API endpoints for user management, including registra
 
 ---
 
-#### **3. Authentication Middleware**
+### **3. Authentication Middleware**
 
 - **URL**: Applies to all protected routes.
 - **Description**: Verifies the presence and validity of a JWT token in the `authorization` cookie. If valid, it attaches the user's data to the request object.
@@ -64,7 +60,7 @@ This document outlines the API endpoints for user management, including registra
 
 ---
 
-#### **4. Get User Profile**
+### **4. Get User Profile**
 
 - **URL**: `/users/profile`
 - **Method**: `GET`
@@ -81,7 +77,7 @@ This document outlines the API endpoints for user management, including registra
 
 ---
 
-#### **5. Update User Profile**
+### **5. Update User Profile**
 
 - **URL**: `/users/profile`
 - **Method**: `PUT`
@@ -103,7 +99,7 @@ This document outlines the API endpoints for user management, including registra
 
 ---
 
-#### **6. Delete User Profile**
+### **6. Delete User Profile**
 
 - **URL**: `/users/delete`
 - **Method**: `DELETE`
