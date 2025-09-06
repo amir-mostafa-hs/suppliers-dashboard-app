@@ -1,3 +1,4 @@
+import cookieParser from "cookie-parser";
 import express from "express";
 
 import { SECRET_VARIABLES } from "./config/secret-variable.js";
@@ -8,7 +9,7 @@ const app = express();
 const prisma = new PrismaClient();
 const port = SECRET_VARIABLES.port;
 
-app.use(express.json());
+app.use(cookieParser(), express.json());
 
 app.get("/", (req, res) => {
   res.send("Backend API is running 🚀");

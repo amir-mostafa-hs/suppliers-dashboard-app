@@ -31,7 +31,14 @@ export const createUser = async (req: Request, res: Response) => {
       expiresIn: "24h",
     });
 
-    return res.status(201).json({ message: "User created successfully.", token });
+    return res
+      .status(200)
+      .cookie("authorization", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+      })
+      .json({ message: "User created successfully." });
   } catch (error: unknown) {
     if (error instanceof Error && "code" in error && error.code === "P2002") {
       // Prisma error code for unique constraint violation
@@ -68,7 +75,14 @@ export const loginUser = async (req: Request, res: Response) => {
       { expiresIn: "24h" } // Token expires in 24 hours
     );
 
-    return res.status(200).json({ token });
+    return res
+      .status(200)
+      .cookie("authorization", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+      })
+      .json({ message: "Login successful." });
   } catch (error) {
     return res.status(500).json({ message: "Something went wrong.", error });
   }

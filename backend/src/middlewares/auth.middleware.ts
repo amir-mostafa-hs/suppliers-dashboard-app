@@ -9,18 +9,21 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = req.cookies["authorization"];
 
   if (token == null) {
     return res.status(401).json({ message: "Authentication token is required." });
   }
 
-  jwt.verify(token, SECRET_VARIABLES.jwt_secret, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid or expired token." });
+  jwt.verify(
+    token,
+    SECRET_VARIABLES.jwt_secret,
+    (err: jwt.VerifyErrors | null, decoded: string | jwt.JwtPayload | undefined) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid or expired token." });
+      }
+      req.user = decoded as User;
+      next();
     }
-    req.user = user as User;
-    next();
-  });
+  );
 };
