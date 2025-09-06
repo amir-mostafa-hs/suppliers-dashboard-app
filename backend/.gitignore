@@ -1,6 +1,14 @@
+# Node modules
 node_modules
 
+# Environment variables
 *.env
 
+# PGAdmin setup
 pgadmin-setup.json
+
+# Prisma Client
 /src/generated/prisma
+
+# Uploads
+/uploads

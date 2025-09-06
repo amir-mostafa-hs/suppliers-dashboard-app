@@ -3,6 +3,7 @@ import express from "express";
 
 import { SECRET_VARIABLES } from "./config/secret-variable.js";
 import { PrismaClient } from "./generated/prisma/client.js";
+import supplierRoutes from "./routes/supplier.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 const app = express();
@@ -16,7 +17,10 @@ app.get("/", (req, res) => {
 });
 
 // user endpoint
-app.use("/user", userRoutes);
+app.use("/users", userRoutes);
+
+// supplier endpoint
+app.use("/suppliers", supplierRoutes);
 
 app.listen(port, async () => {
   console.log(`Server is running on http://localhost:${port}`);

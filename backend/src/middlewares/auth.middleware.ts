@@ -2,10 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
-import type { User } from "../generated/prisma/index.js";
+import type { SupplierDocument, User } from "../generated/prisma/index.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
+  dbFile?: SupplierDocument;
 }
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

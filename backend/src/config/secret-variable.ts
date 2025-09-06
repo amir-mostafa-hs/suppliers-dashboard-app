@@ -13,6 +13,7 @@ interface Variables {
   db_password: string;
   db_url: string;
   jwt_secret: string;
+  base_url: string;
 }
 
 export const SECRET_VARIABLES: Variables = {
@@ -22,4 +23,5 @@ export const SECRET_VARIABLES: Variables = {
   db_password: process.env.POSTGRES_DB || "",
   db_url: process.env.DATABASE_URL || "",
   jwt_secret: process.env.JWT_SECRET || "",
+  base_url: process.env.BASE_URL || "",
 };
