@@ -12,7 +12,7 @@ import { authenticateToken } from "../middlewares/auth.middleware.js";
 const router: Router = Router();
 
 /**
- * @URL : /user/register
+ * @URL : /users/register
  * @Method : POST
  * @Status : PUBLIC
  * @Description : create a new user
@@ -20,7 +20,7 @@ const router: Router = Router();
 router.post("/register", createUser);
 
 /**
- * @URL : /user/login
+ * @URL : /users/login
  * @Method : POST
  * @Status : PUBLIC
  * @Description : login a user
@@ -28,7 +28,7 @@ router.post("/register", createUser);
 router.post("/login", loginUser);
 
 /**
- * @URL : /user/profile
+ * @URL : /users/profile
  * @Method : GET
  * @Status : PRIVATE
  * @Description : get a user's profile
@@ -36,7 +36,7 @@ router.post("/login", loginUser);
 router.get("/profile", authenticateToken, getUserProfile);
 
 /**
- * @URL : /user/profile
+ * @URL : /users/profile
  * @Method : PUT
  * @Status : PRIVATE
  * @Description : update a user's profile
@@ -44,7 +44,7 @@ router.get("/profile", authenticateToken, getUserProfile);
 router.put("/profile", authenticateToken, updateUserProfile);
 
 /**
- * @URL : /user/delete
+ * @URL : /users/delete
  * @Method : DELETE
  * @Status : PRIVATE
  * @Description : delete a user's profile
