@@ -14,19 +14,6 @@ services:
     networks:
       - suppliers_dashboard_app
 
-  pgadmin4:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin4
-    restart: always
-    ports:
-      - 8080:80
-    env_file:
-      - ./src/config/db/.docker.env
-    networks:
-      - suppliers_dashboard_app
-    volumes:
-      - ./src/config/db/pgadmin-setup.json:/pgadmin4/servers.json
-
   redis:
     image: redis:latest
     restart: always
