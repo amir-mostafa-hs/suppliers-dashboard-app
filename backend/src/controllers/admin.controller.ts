@@ -2,15 +2,9 @@ import type { Response } from "express";
 
 import { PrismaClient, Role, SupplierStatus, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
+import { sendNotification } from "../services/notification.service.js";
 
 const prisma = new PrismaClient();
-
-// This is a placeholder for the notification service.
-// In a real application, this would send a push notification, email, etc.
-const sendNotification = async (userId: string, message: string) => {
-  console.log(`Sending notification to user ${userId}: ${message}`);
-  // Implement the actual notification logic here.
-};
 
 // Get a list of all users with search and filter options
 export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
@@ -159,6 +153,10 @@ export const approveSupplier = async (req: AuthenticatedRequest, res: Response) 
       return res.status(404).json({ message: "Supplier application not found." });
     }
 
+    if (supplierProfile.supplierStatus === SupplierStatus.APPROVED) {
+      return res.status(400).json({ message: "Supplier application is already approved." });
+    }
+
     const approvedProfile = await prisma.supplierProfile.update({
       where: { id },
       data: {
@@ -171,7 +169,10 @@ export const approveSupplier = async (req: AuthenticatedRequest, res: Response) 
       data: { role: Role.SUPPLIER },
     });
 
-    await sendNotification(supplierProfile.userId, "Your supplier application has been approved!");
+    // Send email notification
+    const subject = "Your Supplier Application Has Been Approved!";
+    const body = `<p>Congratulations! Your application to become a supplier has been approved.</p>`;
+    await sendNotification(supplierProfile.userId, supplierProfile.user!.email, subject, body);
 
     return res.status(200).json({ message: "Supplier application approved successfully.", profile: approvedProfile });
   } catch (error) {
@@ -215,7 +216,10 @@ export const rejectSupplier = async (req: AuthenticatedRequest, res: Response) =
     //   data: { isSupplier: false },
     // });
 
-    await sendNotification(supplierProfile.userId, "Your supplier application has been rejected.");
+    // Send email notification
+    const subject = "Your Supplier Application Has Been Rejected.";
+    const body = `<p>We're sorry, but your application has been rejected.<br />-------------------------<br />Reason: ${rejectionReason}</p>`;
+    await sendNotification(supplierProfile.userId, supplierProfile.user!.email, subject, body);
 
     return res.status(200).json({ message: "Supplier application rejected successfully.", profile: rejectedProfile });
   } catch (error) {
