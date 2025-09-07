@@ -183,7 +183,7 @@ export const approveSupplier = async (req: AuthenticatedRequest, res: Response) 
 // Reject a supplier's application with a reason
 export const rejectSupplier = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const { rejectionReason } = req.body;
+  const { rejectionReason } = req.body || {};
 
   try {
     if (!id) {
@@ -203,6 +203,14 @@ export const rejectSupplier = async (req: AuthenticatedRequest, res: Response) =
       return res.status(404).json({ message: "Supplier application not found." });
     }
 
+    if (supplierProfile.supplierStatus === SupplierStatus.REJECTED) {
+      return res.status(400).json({ message: "Supplier application is already rejected." });
+    }
+
+    if (supplierProfile.supplierStatus === SupplierStatus.APPROVED) {
+      return res.status(400).json({ message: "Approved supplier applications cannot be rejected." });
+    }
+
     const rejectedProfile = await prisma.supplierProfile.update({
       where: { id },
       data: {
@@ -218,7 +226,7 @@ export const rejectSupplier = async (req: AuthenticatedRequest, res: Response) =
 
     // Send email notification
     const subject = "Your Supplier Application Has Been Rejected.";
-    const body = `<p>We're sorry, but your application has been rejected.<br />-------------------------<br />Reason: ${rejectionReason}</p>`;
+    const body = `<p>We're sorry, but your application has been rejected.<br />-------------------------<br />Reason:<br />${rejectionReason}</p>`;
     await sendNotification(supplierProfile.userId, supplierProfile.user!.email, subject, body);
 
     return res.status(200).json({ message: "Supplier application rejected successfully.", profile: rejectedProfile });
