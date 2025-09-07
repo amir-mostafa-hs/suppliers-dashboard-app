@@ -12,3 +12,6 @@ pgadmin-setup.json
 
 # Uploads
 /uploads
+
+# build output
+/dist
