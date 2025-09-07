@@ -24,6 +24,14 @@ services:
     networks:
       - suppliers_dashboard_app
 
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:
     external: true
