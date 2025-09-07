@@ -24,11 +24,7 @@ export const authenticateDownloadToken = async (req: AuthenticatedRequest, res: 
       return res.status(404).json({ message: "File not found." });
     }
 
-    if (file.supplierProfileId !== decoded.supplierProfileId) {
-      return res.status(403).json({ message: "You do not have permission to download this file." });
-    }
-
-    req.dbFile = file;
+    req.dbFile = { ...file, accessType: decoded.accessType };
     next();
   } catch (error) {
     return res.status(403).json({ message: "Invalid or expired download token.", error });

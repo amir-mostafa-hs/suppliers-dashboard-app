@@ -2,11 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
-import type { SupplierDocument, User } from "../generated/prisma/index.js";
+import { Role, type SupplierDocument, type User } from "../generated/prisma/index.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
-  dbFile?: SupplierDocument;
+  dbFile?: SupplierDocument | { accessType: "download" | "view" };
 }
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -27,4 +27,11 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
       next();
     }
   );
+};
+
+export const checkAdminOrReviewerRole = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user || (req.user.role !== Role.ADMIN && req.user.role !== Role.REVIEWER)) {
+    return res.status(403).json({ message: "Access forbidden: Insufficient permissions." });
+  }
+  next();
 };

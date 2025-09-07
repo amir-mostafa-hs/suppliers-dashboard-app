@@ -1,10 +1,10 @@
 import { Router } from "express";
 
 import {
+  accessFile,
   applySupplier,
   deleteSupplierProfile,
-  downloadFile,
-  generateDownloadLink,
+  generateDownloadOrViewLink,
   getSupplierProfile,
   updateSupplierProfile,
 } from "../controllers/supplier.controller.js";
@@ -53,7 +53,7 @@ router.delete("/delete", authenticateToken, deleteSupplierProfile);
  * @Status : PRIVATE
  * @Description : generate a download link for a specific document
  */
-router.get("/documents/:id/link", authenticateToken, generateDownloadLink);
+router.get("/documents/:id/link", authenticateToken, generateDownloadOrViewLink);
 
 // Download a document using a secure, temporary token
 /**
@@ -62,6 +62,6 @@ router.get("/documents/:id/link", authenticateToken, generateDownloadLink);
  * @Status : PRIVATE
  * @Description : download a document using a secure, temporary token
  */
-router.get("/documents/download", authenticateDownloadToken, downloadFile);
+router.get("/documents/download", authenticateDownloadToken, accessFile);
 
 export default router;
