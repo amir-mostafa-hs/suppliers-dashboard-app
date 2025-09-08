@@ -8,6 +8,7 @@ import {
   updateUserProfile,
 } from "../controllers/user.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
+import { authLimiter } from "../middlewares/rate-limiter.middleware.js";
 
 const router: Router = Router();
 
@@ -17,7 +18,7 @@ const router: Router = Router();
  * @Status : PUBLIC
  * @Description : create a new user
  */
-router.post("/register", createUser);
+router.post("/register", authLimiter, createUser);
 
 /**
  * @URL : /users/login
@@ -25,7 +26,7 @@ router.post("/register", createUser);
  * @Status : PUBLIC
  * @Description : login a user
  */
-router.post("/login", loginUser);
+router.post("/login", authLimiter, loginUser);
 
 /**
  * @URL : /users/profile
