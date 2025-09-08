@@ -1,0 +1,14 @@
+# Ignore build artifacts
+
+dist
+
+# Ignore development dependencies
+
+node_modules
+.vscode
+
+# Ignore project configuration files
+
+.env
+.dockerignore
+.gitignore

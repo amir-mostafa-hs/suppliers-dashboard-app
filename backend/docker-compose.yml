@@ -37,6 +37,22 @@ services:
     networks:
       - suppliers_dashboard_app
 
+  backend_app:
+    build: .
+    container_name: suppliers_backend
+    restart: always
+    env_file:
+      - ./.docker.env
+    ports:
+      - "3030:5040"
+    volumes:
+      - ./.docker.env:/app/.env
+    depends_on:
+      - postgres_db
+      - redis
+    networks:
+      - suppliers_dashboard_app
+
 volumes:
   postgres_data:
     external: true

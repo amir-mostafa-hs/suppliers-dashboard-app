@@ -8,7 +8,7 @@ node_modules
 pgadmin-setup.json
 
 # Prisma Client
-/src/generated/prisma
+/prisma/generated/prisma
 
 # Uploads
 /uploads
