@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 
+import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
 import { PrismaClient, Role, type SupplierDocument } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
@@ -89,8 +90,11 @@ export const applySupplier = async (req: AuthenticatedRequest, res: Response) =>
       data: { isSupplier: true },
     });
 
+    logger.info(`Supplier application submitted: User ID ${user.id}, Email ${user.email}`);
+
     return res.status(200).json({ message: "Supplier application submitted successfully." });
   } catch (error) {
+    logger.error("Error applying to be a supplier:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -149,6 +153,7 @@ export const getSupplierProfile = async (req: AuthenticatedRequest, res: Respons
 
     return res.status(200).json(responseData);
   } catch (error) {
+    logger.error("Error fetching supplier profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -178,8 +183,11 @@ export const updateSupplierProfile = async (req: AuthenticatedRequest, res: Resp
       },
     });
 
+    logger.info(`Supplier profile updated: User ID ${id}, Business Name ${businessName}`);
+
     return res.status(200).json({ message: "Profile updated successfully.", profile: updatedProfile });
   } catch (error) {
+    logger.error("Error updating supplier profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -191,6 +199,7 @@ export const deleteSupplierProfile = async (req: AuthenticatedRequest, res: Resp
   try {
     const supplierProfile = await prisma.supplierProfile.findUnique({
       where: { userId: id },
+      include: { user: true },
     });
 
     if (!supplierProfile) {
@@ -206,8 +215,10 @@ export const deleteSupplierProfile = async (req: AuthenticatedRequest, res: Resp
       data: { isSupplier: false },
     });
 
+    logger.info(`Supplier profile deleted: User Email ${supplierProfile.user.email} (ID: ${supplierProfile.user.id})`);
     return res.status(200).json({ message: "Supplier profile deleted successfully." });
   } catch (error) {
+    logger.error("Error deleting supplier profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -229,7 +240,7 @@ const sendFileWithHeaders = (res: Response, filePath: string, fileName: string, 
     // Use res.download() for downloading, which handles headers and streaming automatically
     res.download(filePath, fileName, (err) => {
       if (err) {
-        console.error("File download failed:", err);
+        logger.error("File download failed:", err);
         return res.status(500).json({ message: "Failed to download file." });
       }
     });
@@ -283,6 +294,7 @@ export const generateDownloadOrViewLink = async (req: AuthenticatedRequest, res:
       .status(200)
       .json({ downloadUrl: `${SECRET_VARIABLES.base_url}/suppliers/documents/download?token=${token}` });
   } catch (error) {
+    logger.error("Error generating download/view link:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -299,6 +311,7 @@ export const accessFile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     return sendFileWithHeaders(res, fileUrl, fileName, fileType, accessType === "view");
   } catch (error) {
+    logger.error("Error accessing file:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };

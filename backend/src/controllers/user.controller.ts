@@ -2,6 +2,7 @@ import argon2 from "argon2";
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
+import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
 import { PrismaClient, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
@@ -27,6 +28,8 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
+    logger.info(`New user created: ${user.email}`);
+
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_VARIABLES.jwt_secret, {
       expiresIn: "24h",
     });
@@ -40,6 +43,7 @@ export const createUser = async (req: Request, res: Response) => {
       })
       .json({ message: "User created successfully." });
   } catch (error: unknown) {
+    logger.error("Error creating user:", error);
     if (error instanceof Error && "code" in error && error.code === "P2002") {
       // Prisma error code for unique constraint violation
       return res.status(409).json({ message: "Email already exists.", error });
@@ -69,6 +73,8 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
+    logger.info(`User logged in: ${user.email}`);
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       SECRET_VARIABLES.jwt_secret,
@@ -84,6 +90,7 @@ export const loginUser = async (req: Request, res: Response) => {
       })
       .json({ message: "Login successful." });
   } catch (error) {
+    logger.error("Error during login:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -108,6 +115,7 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response) =
 
     return res.status(200).json(user);
   } catch (error) {
+    logger.error("Error fetching user profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -147,6 +155,8 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
       updatedData.password = hashedPassword;
     }
 
+    logger.info(`User profile updated: ${user.email}`);
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updatedData,
@@ -155,6 +165,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
 
     return res.status(200).json({ message: "User profile updated successfully.", user: updatedUser });
   } catch (error) {
+    logger.error("Error updating user profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -168,10 +179,13 @@ export const deleteUserProfile = async (req: AuthenticatedRequest, res: Response
       return res.status(400).json({ message: "User ID is required." });
     }
 
-    await prisma.user.delete({ where: { id } });
+    const user = await prisma.user.delete({ where: { id } });
+
+    logger.info(`User deleted: Email ${user.email}`);
 
     return res.status(200).json({ message: "User deleted successfully." });
   } catch (error) {
+    logger.error("Error deleting user profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };

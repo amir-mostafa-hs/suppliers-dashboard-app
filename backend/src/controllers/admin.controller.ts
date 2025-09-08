@@ -1,5 +1,6 @@
 import type { Response } from "express";
 
+import logger from "../config/logger.js";
 import { PrismaClient, Role, SupplierStatus, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 import { sendNotification } from "../services/notification.service.js";
@@ -56,6 +57,7 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
     }
     return res.status(200).json(users);
   } catch (error) {
+    logger.error("Error fetching users:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -101,6 +103,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 
     return res.status(200).json(user);
   } catch (error) {
+    logger.error("Error fetching user by ID:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -129,8 +132,11 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response) =
       select: { id: true, email: true, role: true },
     });
 
+    logger.info(`User role updated: ${updatedUser.id} to ${updatedUser.role}`);
+
     return res.status(200).json({ message: "User role updated successfully.", user: updatedUser });
   } catch (error) {
+    logger.error("Error updating user role:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -174,8 +180,11 @@ export const approveSupplier = async (req: AuthenticatedRequest, res: Response) 
     const body = `<p>Congratulations! Your application to become a supplier has been approved.</p>`;
     await sendNotification(supplierProfile.userId, supplierProfile.user!.email, subject, body);
 
+    logger.info(`Supplier application approved: ${approvedProfile.id} for user ${supplierProfile.userId}`);
+
     return res.status(200).json({ message: "Supplier application approved successfully.", profile: approvedProfile });
   } catch (error) {
+    logger.error("Error approving supplier application:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };
@@ -229,8 +238,11 @@ export const rejectSupplier = async (req: AuthenticatedRequest, res: Response) =
     const body = `<p>We're sorry, but your application has been rejected.<br />-------------------------<br />Reason:<br />${rejectionReason}</p>`;
     await sendNotification(supplierProfile.userId, supplierProfile.user!.email, subject, body);
 
+    logger.info(`Supplier application rejected: ${rejectedProfile.id} for user ${supplierProfile.userId}`);
+
     return res.status(200).json({ message: "Supplier application rejected successfully.", profile: rejectedProfile });
   } catch (error) {
+    logger.error("Error rejecting supplier application:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };

@@ -1,6 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import nodemailer from "nodemailer";
 
+import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
 
 // Create a queue for notifications
@@ -34,7 +35,7 @@ new Worker(
         subject: data.subject,
         html: data.body,
       });
-      console.log(`Email sent to ${data.email}`);
+      logger.info(`Email sent to ${data.email}`);
     }
   },
   { connection }
@@ -47,8 +48,8 @@ export const sendNotification = async (userId: string, email: string, subject: s
       type: "email",
       data: { userId, email, subject, body },
     });
-    console.log(`Notification job added to queue for user ${userId}`);
+    logger.info(`Notification job added to queue for user ${userId}`);
   } catch (error) {
-    console.error(`Failed to add notification job for user ${userId}:`, error);
+    logger.error(`Failed to add notification job for user ${userId}:`, error);
   }
 };
