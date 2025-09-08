@@ -44,6 +44,7 @@ export const upload = multer({
 export const applySupplier = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.user!;
   const files = req.files as Express.Multer.File[];
+  const { businessName, address, city, state, zipCode } = req.body;
 
   try {
     // Ensure a file has been uploaded
@@ -69,6 +70,11 @@ export const applySupplier = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         userId: user.id,
         supplierStatus: "PENDING",
+        businessName,
+        address,
+        city,
+        state,
+        zipCode,
       },
     });
 
