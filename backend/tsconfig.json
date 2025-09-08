@@ -1,6 +1,13 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
+    // Base directory to resolve non-relative module names
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["src/*"],
+      "prisma/*": ["prisma/*"]
+    },
+
     // File Layout
     "outDir": "dist",
     "rootDir": "src",

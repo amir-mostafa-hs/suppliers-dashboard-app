@@ -3,10 +3,10 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
+import { PrismaClient, Role, type SupplierDocument } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
-import { PrismaClient, Role, type SupplierDocument } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 const prisma = new PrismaClient();

@@ -1,7 +1,7 @@
 import type { Response } from "express";
+import { PrismaClient, Role, SupplierStatus, type User } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
-import { PrismaClient, Role, SupplierStatus, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 import { sendNotification } from "../services/notification.service.js";
 

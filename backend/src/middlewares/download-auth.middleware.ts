@@ -1,9 +1,9 @@
 // src/middlewares/auth.middleware.ts
 import type { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
+import { PrismaClient, type User } from "prisma/generated/prisma/client.js";
 
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
-import { PrismaClient, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "./auth.middleware.js";
 
 const prisma = new PrismaClient();

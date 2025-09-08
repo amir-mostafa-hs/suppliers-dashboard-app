@@ -1,10 +1,10 @@
 import argon2 from "argon2";
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { PrismaClient, type User } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
-import { PrismaClient, type User } from "../generated/prisma/client.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 const prisma = new PrismaClient();

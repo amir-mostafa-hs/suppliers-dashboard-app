@@ -1,9 +1,9 @@
 import cookieParser from "cookie-parser";
 import express from "express";
+import { PrismaClient } from "prisma/generated/prisma/client.js";
 
 import logger from "./config/logger.js";
 import { SECRET_VARIABLES } from "./config/secret-variable.js";
-import { PrismaClient } from "./generated/prisma/client.js";
 import { apiLimiter } from "./middlewares/rate-limiter.middleware.js";
 import { requestLogger } from "./middlewares/request-logger.middleware.js";
 import adminRoutes from "./routes/admin.routes.js";
