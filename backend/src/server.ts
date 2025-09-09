@@ -17,7 +17,7 @@ const port = SECRET_VARIABLES.port;
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://localhost:5173"], // Allow both Vite default ports
     credentials: true,
   })
 );
