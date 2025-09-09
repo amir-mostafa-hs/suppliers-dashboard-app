@@ -1,5 +1,5 @@
 import type { Response } from "express";
-import { PrismaClient, Role, SupplierStatus, type User } from "prisma/generated/prisma/client.js";
+import { PrismaClient, Role, type SupplierProfile, SupplierStatus, type User } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
@@ -66,7 +66,7 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
 export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const userRole = req.user?.role;
-  let user: User | null = null;
+  let user: SupplierProfile | null = null;
 
   try {
     if (!id) {
@@ -74,24 +74,22 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (userRole === Role.ADMIN) {
-      user = await prisma.user.findUnique({
+      user = await prisma.supplierProfile.findUnique({
         where: { id },
         include: {
-          supplierProfile: {
-            include: {
-              documents: true,
-            },
+          documents: true,
+          user: {
+            select: { id: true, email: true, role: true },
           },
         },
       });
     } else {
-      user = await prisma.user.findUnique({
-        where: { id, OR: [{ role: "SUPPLIER" }, { role: "USER" }] },
+      user = await prisma.supplierProfile.findUnique({
+        where: { id },
         include: {
-          supplierProfile: {
-            include: {
-              documents: true,
-            },
+          documents: true,
+          user: {
+            select: { id: true, email: true, role: true },
           },
         },
       });

@@ -95,6 +95,21 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
+// User logout
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    res.clearCookie("authorization", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+    });
+    return res.status(200).json({ message: "Logout successful." });
+  } catch (error) {
+    logger.error("Error during logout:", error);
+    return res.status(500).json({ message: "Something went wrong.", error });
+  }
+};
+
 // Get a user's profile
 export const getUserProfile = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.user!;
@@ -113,7 +128,7 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response) =
       return res.status(404).json({ message: "User not found." });
     }
 
-    return res.status(200).json(user);
+    return res.status(200).json({ user });
   } catch (error) {
     logger.error("Error fetching user profile:", error);
     return res.status(500).json({ message: "Something went wrong.", error });

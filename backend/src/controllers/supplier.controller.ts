@@ -144,18 +144,14 @@ export const getSupplierProfile = async (req: AuthenticatedRequest, res: Respons
       status: supplierProfile.supplierStatus,
       rejectionReason: supplierProfile.rejectionReason,
       documents: supplierProfile.documents,
-      profile: null,
-    };
-
-    if (supplierProfile.supplierStatus === "APPROVED") {
-      responseData.profile = {
+      profile: {
         businessName: supplierProfile.businessName,
         address: supplierProfile.address,
         city: supplierProfile.city,
         state: supplierProfile.state,
         zipCode: supplierProfile.zipCode,
-      };
-    }
+      },
+    };
 
     return res.status(200).json(responseData);
   } catch (error) {
@@ -255,11 +251,14 @@ const sendFileWithHeaders = (res: Response, filePath: string, fileName: string, 
 
 // Generate a secure download link with a JWT token
 export const generateDownloadOrViewLink = async (req: AuthenticatedRequest, res: Response) => {
-  const { id: fileId } = req.params;
+  const { id: supplierProfileId, documentId } = req.params;
   const { id: userId, role } = req.user!;
   let token = "";
 
   try {
+    // For routes with documentId parameter (admin routes)
+    const fileId = documentId || req.params.id;
+
     if (!fileId) {
       return res.status(400).json({ message: "File ID is required." });
     }
@@ -275,6 +274,11 @@ export const generateDownloadOrViewLink = async (req: AuthenticatedRequest, res:
       return res.status(404).json({ message: "File not found." });
     }
 
+    // For admin routes with supplierProfileId, verify that the document belongs to the specified supplier
+    if (supplierProfileId && file.supplierProfileId !== supplierProfileId) {
+      return res.status(404).json({ message: "File not found for this supplier." });
+    }
+
     if (role === Role.SUPPLIER || role === Role.USER) {
       // Check for ownership
       if (file.supplierProfile?.userId !== userId) {
@@ -287,8 +291,11 @@ export const generateDownloadOrViewLink = async (req: AuthenticatedRequest, res:
         { expiresIn: "15m" } // Link valid for 15 minutes
       );
     } else if (role === Role.ADMIN || role === Role.REVIEWER) {
+      // For admin/reviewer, allow both download and view access
+      const accessType = req.query.type === "view" ? "view" : "download";
+
       token = jwt.sign(
-        { fileId: file.id, accessType: "view" },
+        { fileId: file.id, accessType },
         SECRET_VARIABLES.jwt_secret,
         { expiresIn: "30m" } // Link valid for 30 minutes
       );
@@ -318,6 +325,50 @@ export const accessFile = async (req: AuthenticatedRequest, res: Response) => {
     return sendFileWithHeaders(res, fileUrl, fileName, fileType, accessType === "view");
   } catch (error) {
     logger.error("Error accessing file:", error);
+    return res.status(500).json({ message: "Something went wrong.", error });
+  }
+};
+
+// Admin direct document download (for routes like /admin/suppliers/:id/documents/:documentId/download)
+export const adminDownloadDocument = async (req: AuthenticatedRequest, res: Response) => {
+  const { id: supplierProfileId, documentId } = req.params;
+  const { role } = req.user!;
+
+  try {
+    // Check if user is admin or reviewer
+    if (role !== Role.ADMIN && role !== Role.REVIEWER) {
+      return res.status(403).json({ message: "You do not have permission to access this file." });
+    }
+
+    if (!documentId) {
+      return res.status(400).json({ message: "Document ID is required." });
+    }
+
+    const file = await prisma.supplierDocument.findUnique({
+      where: { id: documentId },
+      include: {
+        supplierProfile: true,
+      },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: "Document not found." });
+    }
+
+    // Verify that the document belongs to the specified supplier profile
+    if (file.supplierProfileId !== supplierProfileId) {
+      return res.status(404).json({ message: "Document not found for this supplier." });
+    }
+
+    // Check if file properties exist
+    if (!file.fileUrl || !file.fileName || !file.fileType) {
+      return res.status(500).json({ message: "File information is incomplete." });
+    }
+
+    // Send file directly
+    return sendFileWithHeaders(res, file.fileUrl, file.fileName, file.fileType, false);
+  } catch (error) {
+    logger.error("Error downloading document:", error);
     return res.status(500).json({ message: "Something went wrong.", error });
   }
 };

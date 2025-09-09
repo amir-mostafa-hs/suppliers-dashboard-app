@@ -5,6 +5,7 @@ import {
   deleteUserProfile,
   getUserProfile,
   loginUser,
+  logoutUser,
   updateUserProfile,
 } from "../controllers/user.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
@@ -27,6 +28,14 @@ router.post("/register", authLimiter, createUser);
  * @Description : login a user
  */
 router.post("/login", authLimiter, loginUser);
+
+/**
+ * @URL : /users/logout
+ * @Method : POST
+ * @Status : PRIVATE
+ * @Description : logout a user
+ */
+router.post("/logout", authenticateToken, logoutUser);
 
 /**
  * @URL : /users/profile
