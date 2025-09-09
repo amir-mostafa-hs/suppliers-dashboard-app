@@ -1,27 +1,42 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Building2, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { SECRET_VARIABLES } from "@/config/secret-variable";
+import { useUser } from "@/hooks/use-user";
+import Loading from "@/components/Loading";
+import api from "@/lib/api/axios";
 
-const registerSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    email: z.email("Please enter a valid email address"),
+    password: z.string().min(5, "Password must be at least 5 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { user, isLoading } = useUser();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
@@ -34,26 +49,42 @@ const Register = () => {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: RegisterForm) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/");
+    }
+  }, [user, isLoading, navigate]);
+
+  const registerMutation = useMutation({
+    mutationFn: (data: RegisterForm) => {
+      const { confirmPassword, ...rest } = data;
+      return api.post("/users/register", rest);
+    },
+    onSuccess: () => {
       toast({
         title: "Account created successfully",
-        description: "Welcome to SupplierHub! Please check your email to verify your account.",
+        description:
+          "Welcome to SupplierHub! Please login to verify your account.",
       });
-      
-      // Redirect logic would go here
-      console.log("Register data:", data);
-    } catch (error) {
+      navigate("/auth/login");
+    },
+    onError: (error) => {
       toast({
         title: "Registration failed",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    }
+      console.error("Registration error:", error);
+    },
+  });
+
+  const onSubmit = async (data: RegisterForm) => {
+    registerMutation.mutate(data);
   };
+
+  if (isLoading || user) {
+    return <Loading variant="spinner" />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -61,13 +92,17 @@ const Register = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
             <Building2 className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold text-foreground">SupplierHub</span>
+            <span className="text-2xl font-bold text-foreground">
+              SupplierHub
+            </span>
           </Link>
         </div>
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Create Account</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              Create Account
+            </CardTitle>
             <CardDescription className="text-center">
               Join our supplier network and start growing your business
             </CardDescription>
@@ -84,7 +119,9 @@ const Register = () => {
                   className={errors.email ? "border-destructive" : ""}
                 />
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -96,7 +133,9 @@ const Register = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     {...register("password")}
-                    className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                    className={
+                      errors.password ? "border-destructive pr-10" : "pr-10"
+                    }
                   />
                   <Button
                     type="button"
@@ -113,7 +152,9 @@ const Register = () => {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -125,7 +166,11 @@ const Register = () => {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     {...register("confirmPassword")}
-                    className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                    className={
+                      errors.confirmPassword
+                        ? "border-destructive pr-10"
+                        : "pr-10"
+                    }
                   />
                   <Button
                     type="button"
@@ -142,15 +187,13 @@ const Register = () => {
                   </Button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.confirmPassword.message}
+                  </p>
                 )}
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Creating account..." : "Create Account"}
               </Button>
             </form>
@@ -158,8 +201,8 @@ const Register = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link 
-                  to="/auth/login" 
+                <Link
+                  to="/auth/login"
                   className="text-primary hover:underline font-medium"
                 >
                   Sign in

@@ -1,25 +1,39 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Building2, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { useUser } from "../../hooks/use-user";
+import Loading from "@/components/Loading";
+import api from "@/lib/api/axios";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.email("Please enter a valid email address"),
+  password: z.string().min(5, "Password must be at least 5 characters"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { user, isLoading } = useUser();
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -29,26 +43,43 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginForm) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/");
+    }
+  }, [user, isLoading, navigate]);
+
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginForm) => {
+      return api.post("/users/login", data);
+    },
+    onSuccess: async () => {
       toast({
         title: "Login successful",
         description: "Welcome back to SupplierHub!",
       });
-      
-      // Redirect logic would go here
-      console.log("Login data:", data);
-    } catch (error) {
+      // Invalidate user queries to refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      await queryClient.invalidateQueries({ queryKey: ["supplierProfile"] });
+      navigate("/");
+    },
+    onError: (error) => {
       toast({
         title: "Login failed",
         description: "Please check your credentials and try again.",
         variant: "destructive",
       });
-    }
+      console.error(error);
+    },
+  });
+
+  const onSubmit = async (data: LoginForm) => {
+    loginMutation.mutate(data);
   };
+
+  if (isLoading || user) {
+    return <Loading variant="spinner" />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -56,7 +87,9 @@ const Login = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
             <Building2 className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold text-foreground">SupplierHub</span>
+            <span className="text-2xl font-bold text-foreground">
+              SupplierHub
+            </span>
           </Link>
         </div>
 
@@ -79,7 +112,9 @@ const Login = () => {
                   className={errors.email ? "border-destructive" : ""}
                 />
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -91,7 +126,9 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     {...register("password")}
-                    className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                    className={
+                      errors.password ? "border-destructive pr-10" : "pr-10"
+                    }
                   />
                   <Button
                     type="button"
@@ -108,15 +145,13 @@ const Login = () => {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Signing in..." : "Sign In"}
               </Button>
             </form>
@@ -124,8 +159,8 @@ const Login = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link 
-                  to="/auth/register" 
+                <Link
+                  to="/auth/register"
                   className="text-primary hover:underline font-medium"
                 >
                   Sign up

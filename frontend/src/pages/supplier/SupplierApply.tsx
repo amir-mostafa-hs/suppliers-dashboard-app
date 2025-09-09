@@ -1,26 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building2, 
-  ArrowLeft, 
-  ArrowRight, 
-  Upload, 
-  File, 
+import {
+  Building2,
+  ArrowLeft,
+  ArrowRight,
+  Upload,
+  File,
   CheckCircle,
-  X
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
+import Loading from "@/components/Loading";
+import api from "@/lib/api/axios";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const businessDetailsSchema = z.object({
-  businessName: z.string().min(2, "Business name must be at least 2 characters"),
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   city: z.string().min(2, "City must be at least 2 characters"),
   state: z.string().min(2, "State must be at least 2 characters"),
@@ -31,9 +44,13 @@ type BusinessDetailsForm = z.infer<typeof businessDetailsSchema>;
 
 const SupplierApply = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [businessDetails, setBusinessDetails] = useState<BusinessDetailsForm | null>(null);
+  const [businessDetails, setBusinessDetails] =
+    useState<BusinessDetailsForm | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, isLoading, isError } = useUser();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -42,6 +59,71 @@ const SupplierApply = () => {
   } = useForm<BusinessDetailsForm>({
     resolver: zodResolver(businessDetailsSchema),
   });
+
+  // Mutation for submitting supplier application
+  const applyMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await api.post("/suppliers/apply", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Application submitted successfully!",
+        description:
+          "We'll review your application and get back to you within 2-3 business days.",
+      });
+
+      // Invalidate user queries to refresh user data
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["supplierProfile"] });
+
+      // Redirect to supplier profile
+      navigate("/supplier/profile");
+    },
+    onError: (error: unknown) => {
+      console.error("Application submission failed:", error);
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response: { data: { message: string } } }).response
+              ?.data?.message
+          : "Something went wrong. Please try again.";
+
+      toast({
+        title: "Submission failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Redirect if user is not authenticated or already applied as supplier
+  useEffect(() => {
+    if (isError && !isLoading) {
+      navigate("/auth/login");
+    } else if (user && user.isSupplier) {
+      navigate("/supplier/profile");
+    } else if (user && user.role === "ADMIN") {
+      navigate("/admin/dashboard");
+    }
+  }, [user, isLoading, isError, navigate]);
+
+  if (isLoading) {
+    return <Loading variant="page" />;
+  }
+
+  if (isError || !user) {
+    navigate("/auth/login");
+    return <Loading variant="page" />;
+  }
+
+  if (user.role !== "USER") {
+    navigate("/");
+    return <Loading variant="page" />;
+  }
 
   const progress = (currentStep / 2) * 100;
 
@@ -56,9 +138,9 @@ const SupplierApply = () => {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file => {
-      const isValidType = file.type === "application/pdf" || 
-                         file.type.startsWith("image/");
+    const validFiles = files.filter((file) => {
+      const isValidType =
+        file.type === "application/pdf" || file.type.startsWith("image/");
       const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
       return isValidType && isValidSize;
     });
@@ -71,42 +153,42 @@ const SupplierApply = () => {
       });
     }
 
-    setUploadedFiles(prev => [...prev, ...validFiles]);
+    setUploadedFiles((prev) => [...prev, ...validFiles]);
   };
 
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleFinalSubmit = async () => {
     if (!businessDetails || uploadedFiles.length === 0) {
       toast({
         title: "Incomplete application",
-        description: "Please complete all steps and upload at least one document.",
+        description:
+          "Please complete all steps and upload at least one document.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Simulate API submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Application submitted successfully!",
-        description: "We'll review your application and get back to you within 2-3 business days.",
+      const formData = new FormData();
+
+      // Add business details to form data
+      formData.append("businessName", businessDetails.businessName);
+      formData.append("address", businessDetails.address);
+      formData.append("city", businessDetails.city);
+      formData.append("state", businessDetails.state);
+      formData.append("zipCode", businessDetails.zipCode);
+
+      // Add uploaded files
+      uploadedFiles.forEach((file) => {
+        formData.append("documents", file);
       });
 
-      // Reset form or redirect
-      setCurrentStep(1);
-      setBusinessDetails(null);
-      setUploadedFiles([]);
+      await applyMutation.mutateAsync(formData);
     } catch (error) {
-      toast({
-        title: "Submission failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Error submitting application:", error);
     }
   };
 
@@ -117,9 +199,7 @@ const SupplierApply = () => {
           <Building2 className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Supplier Application</h1>
         </div>
-        <Badge variant="secondary">
-          Step {currentStep} of 2
-        </Badge>
+        <Badge variant="secondary">Step {currentStep} of 2</Badge>
       </div>
       <Progress value={progress} className="mb-2" />
       <div className="flex justify-between text-sm text-muted-foreground">
@@ -138,11 +218,15 @@ const SupplierApply = () => {
       <CardHeader>
         <CardTitle>Business Information</CardTitle>
         <CardDescription>
-          Tell us about your business to get started with the application process.
+          Tell us about your business to get started with the application
+          process.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onBusinessDetailsSubmit)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onBusinessDetailsSubmit)}
+          className="space-y-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="businessName">Business Name *</Label>
             <Input
@@ -152,7 +236,9 @@ const SupplierApply = () => {
               className={errors.businessName ? "border-destructive" : ""}
             />
             {errors.businessName && (
-              <p className="text-sm text-destructive">{errors.businessName.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.businessName.message}
+              </p>
             )}
           </div>
 
@@ -165,7 +251,9 @@ const SupplierApply = () => {
               className={errors.address ? "border-destructive" : ""}
             />
             {errors.address && (
-              <p className="text-sm text-destructive">{errors.address.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.address.message}
+              </p>
             )}
           </div>
 
@@ -179,7 +267,9 @@ const SupplierApply = () => {
                 className={errors.city ? "border-destructive" : ""}
               />
               {errors.city && (
-                <p className="text-sm text-destructive">{errors.city.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.city.message}
+                </p>
               )}
             </div>
 
@@ -192,7 +282,9 @@ const SupplierApply = () => {
                 className={errors.state ? "border-destructive" : ""}
               />
               {errors.state && (
-                <p className="text-sm text-destructive">{errors.state.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.state.message}
+                </p>
               )}
             </div>
 
@@ -205,7 +297,9 @@ const SupplierApply = () => {
                 className={errors.zipCode ? "border-destructive" : ""}
               />
               {errors.zipCode && (
-                <p className="text-sm text-destructive">{errors.zipCode.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.zipCode.message}
+                </p>
               )}
             </div>
           </div>
@@ -226,7 +320,8 @@ const SupplierApply = () => {
       <CardHeader>
         <CardTitle>Document Upload</CardTitle>
         <CardDescription>
-          Upload required business documents for verification. Accepted formats: PDF, JPG, PNG (max 10MB each).
+          Upload required business documents for verification. Accepted formats:
+          PDF, JPG, PNG (max 10MB each).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -246,10 +341,10 @@ const SupplierApply = () => {
               className="hidden"
               id="file-upload"
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => document.getElementById('file-upload')?.click()}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById("file-upload")?.click()}
             >
               Choose Files
             </Button>
@@ -261,8 +356,8 @@ const SupplierApply = () => {
           <div className="space-y-3">
             <h4 className="font-medium">Uploaded Documents</h4>
             {uploadedFiles.map((file, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
               >
                 <div className="flex items-center space-x-3">
@@ -293,16 +388,16 @@ const SupplierApply = () => {
 
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             variant="outline"
             onClick={() => setCurrentStep(1)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={handleFinalSubmit}
             disabled={uploadedFiles.length === 0 || isSubmitting}
           >
@@ -317,7 +412,7 @@ const SupplierApply = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderStepIndicator()}
-        
+
         {currentStep === 1 && renderBusinessDetailsStep()}
         {currentStep === 2 && renderDocumentUploadStep()}
       </div>

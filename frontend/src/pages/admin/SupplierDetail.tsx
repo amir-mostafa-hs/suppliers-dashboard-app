@@ -1,26 +1,72 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { 
-  ArrowLeft, 
-  Building2, 
-  MapPin, 
-  Mail, 
-  Phone, 
-  Globe, 
-  Calendar, 
-  FileText, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  ArrowLeft,
+  Building2,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
+  Calendar,
+  FileText,
   Download,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import api from "../../lib/api/axios";
 
-// Mock supplier data
+interface SupplierDocument {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  supplierProfileId: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role: string;
+}
+
+interface SupplierProfile {
+  id: string;
+  supplierStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason: string | null;
+  businessName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  userId: string;
+  documents: SupplierDocument[];
+  user: User;
+}
+
+// Mock supplier data (fallback)
 const mockSupplierData = {
   "2": {
     id: "2",
@@ -59,7 +105,8 @@ const mockSupplierData = {
         uploadedAt: "2024-01-10T10:17:00Z",
       },
     ],
-    notes: "Strong business history and excellent references. All documentation complete.",
+    notes:
+      "Strong business history and excellent references. All documentation complete.",
   },
   "3": {
     id: "3",
@@ -98,11 +145,87 @@ const mockSupplierData = {
 const SupplierDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 
-  const supplier = id ? mockSupplierData[id as keyof typeof mockSupplierData] : null;
+  // Fetch supplier details
+  const {
+    data: supplier,
+    isLoading,
+    error,
+  } = useQuery<SupplierProfile>({
+    queryKey: ["supplier-detail", id],
+    queryFn: async () => {
+      const response = await api.get(`/admin/suppliers/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
 
-  if (!supplier) {
+  // Approve supplier mutation
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.patch(`/admin/suppliers/${id}/approve`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-detail", id] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast({
+        title: "Supplier approved",
+        description: `${supplier?.businessName} has been approved as a supplier.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Approval failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject supplier mutation
+  const rejectMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      const response = await api.patch(`/admin/suppliers/${id}/reject`, {
+        rejectionReason: reason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-detail", id] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast({
+        title: "Supplier rejected",
+        description: `${supplier?.businessName}'s application has been rejected.`,
+        variant: "destructive",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Rejection failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Loading...</h1>
+          <p className="text-muted-foreground">Fetching supplier details</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !supplier) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -121,73 +244,91 @@ const SupplierDetail = () => {
     );
   }
 
-  const handleApprove = async () => {
-    setIsProcessing(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast({
-        title: "Supplier approved",
-        description: `${supplier.businessName} has been approved as a supplier.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Approval failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleApprove = () => {
+    approveMutation.mutate();
   };
 
-  const handleReject = async () => {
-    setIsProcessing(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+  const handleRejectClick = () => {
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (!rejectionReason.trim()) {
       toast({
-        title: "Supplier rejected",
-        description: `${supplier.businessName}'s application has been rejected.`,
+        title: "Rejection reason required",
+        description: "Please provide a reason for rejecting this application.",
         variant: "destructive",
       });
+      return;
+    }
+
+    rejectMutation.mutate(rejectionReason.trim());
+    setIsRejectDialogOpen(false);
+    setRejectionReason("");
+  };
+
+  const handleRejectCancel = () => {
+    setIsRejectDialogOpen(false);
+    setRejectionReason("");
+  };
+
+  const handleDownloadDocument = async (
+    documentId: string,
+    fileName: string
+  ) => {
+    try {
+      const response = await api.get(
+        `/admin/suppliers/${id}/documents/${documentId}/download`,
+        {
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       toast({
-        title: "Rejection failed",
-        description: "Something went wrong. Please try again.",
+        title: "Download failed",
+        description: "Could not download the document. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      PENDING: { variant: "secondary" as const, icon: Clock, color: "text-warning" },
-      APPROVED: { variant: "default" as const, icon: CheckCircle, color: "text-success" },
-      REJECTED: { variant: "destructive" as const, icon: XCircle, color: "text-destructive" },
+      PENDING: {
+        variant: "secondary" as const,
+        icon: Clock,
+        color: "text-warning",
+      },
+      APPROVED: {
+        variant: "default" as const,
+        icon: CheckCircle,
+        color: "text-success",
+      },
+      REJECTED: {
+        variant: "destructive" as const,
+        icon: XCircle,
+        color: "text-destructive",
+      },
     };
-    
+
     const config = configs[status as keyof typeof configs];
     const Icon = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className={`h-3 w-3 ${config.color}`} />
         {status}
       </Badge>
     );
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -204,34 +345,88 @@ const SupplierDetail = () => {
             </Link>
             <div>
               <h1 className="text-3xl font-bold">{supplier.businessName}</h1>
-              <p className="text-muted-foreground">Supplier Application Review</p>
+              <p className="text-muted-foreground">
+                Supplier Application Review
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {getStatusBadge(supplier.status)}
+              {getStatusBadge(supplier.supplierStatus)}
               <span className="text-sm text-muted-foreground">
-                Applied: {new Date(supplier.appliedAt).toLocaleDateString()}
+                Status: {supplier.supplierStatus}
               </span>
             </div>
-            
-            {supplier.status === "PENDING" && (
+
+            {supplier.supplierStatus === "PENDING" && (
               <div className="flex space-x-2">
-                <Button 
-                  onClick={handleReject}
-                  variant="destructive"
-                  disabled={isProcessing}
+                <Dialog
+                  open={isRejectDialogOpen}
+                  onOpenChange={setIsRejectDialogOpen}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {isProcessing ? "Processing..." : "Reject"}
-                </Button>
-                <Button 
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={handleRejectClick}
+                      variant="destructive"
+                      disabled={rejectMutation.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      {rejectMutation.isPending ? "Processing..." : "Reject"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Reject Supplier Application</DialogTitle>
+                      <DialogDescription>
+                        Please provide a reason for rejecting{" "}
+                        {supplier.businessName}'s application. This will be
+                        shared with the supplier.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="rejection-reason">
+                          Rejection Reason
+                        </Label>
+                        <Textarea
+                          id="rejection-reason"
+                          placeholder="Please explain why this application is being rejected..."
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          rows={4}
+                          className="mt-2"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleRejectCancel}
+                          disabled={rejectMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleRejectConfirm}
+                          disabled={
+                            rejectMutation.isPending || !rejectionReason.trim()
+                          }
+                        >
+                          {rejectMutation.isPending
+                            ? "Rejecting..."
+                            : "Confirm Rejection"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
                   onClick={handleApprove}
-                  disabled={isProcessing}
+                  disabled={approveMutation.isPending}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {isProcessing ? "Processing..." : "Approve"}
+                  {approveMutation.isPending ? "Processing..." : "Approve"}
                 </Button>
               </div>
             )}
@@ -256,44 +451,47 @@ const SupplierDetail = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Email
+                      </label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span>{supplier.email}</span>
+                        <span>{supplier.user.email}</span>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Phone
+                      </label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span>{supplier.phone}</span>
+                        <span>Not available</span>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Website</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Website
+                      </label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Globe className="h-4 w-4 text-muted-foreground" />
-                        <a 
-                          href={supplier.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          {supplier.website}
-                        </a>
+                        <span>Not available</span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Business Address</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Business Address
+                    </label>
                     <div className="flex items-start space-x-2 mt-1">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
                       <div>
                         <div>{supplier.address}</div>
-                        <div>{supplier.city}, {supplier.state} {supplier.zipCode}</div>
+                        <div>
+                          {supplier.city}, {supplier.state} {supplier.zipCode}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -315,25 +513,28 @@ const SupplierDetail = () => {
               <CardContent>
                 <div className="space-y-3">
                   {supplier.documents.map((doc) => (
-                    <div 
-                      key={doc.id} 
+                    <div
+                      key={doc.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
                         <FileText className="h-5 w-5 text-primary" />
                         <div>
-                          <p className="font-medium">{doc.name}</p>
+                          <p className="font-medium">{doc.fileName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {formatFileSize(doc.size)} • Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+                            {doc.fileType}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleDownloadDocument(doc.id, doc.fileName)
+                          }
+                        >
                           <Download className="h-4 w-4 mr-1" />
                           Download
                         </Button>
@@ -355,30 +556,21 @@ const SupplierDetail = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Current Status:</span>
-                  {getStatusBadge(supplier.status)}
+                  {getStatusBadge(supplier.supplierStatus)}
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span>Applied: {new Date(supplier.appliedAt).toLocaleDateString()}</span>
+                    <span>Application ID: {supplier.id.slice(0, 8)}...</span>
                   </div>
-                  
-                  {supplier.reviewedAt && (
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>Reviewed: {new Date(supplier.reviewedAt).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  
-                  {supplier.reviewedBy && (
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      <span>Reviewed by: {supplier.reviewedBy}</span>
-                    </div>
-                  )}
+
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <span>User: {supplier.user.email}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -396,15 +588,17 @@ const SupplierDetail = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Documents Uploaded</span>
-                    <span className="text-success">{supplier.documents.length} files</span>
+                    <span className="text-success">
+                      {supplier.documents.length} files
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Contact Information</span>
                     <span className="text-success">Complete</span>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="text-center text-sm font-medium">
                     Application Complete
                   </div>
@@ -412,15 +606,15 @@ const SupplierDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Admin Notes */}
-            {supplier.notes && (
+            {/* Rejection Reason */}
+            {supplier.rejectionReason && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Admin Notes</CardTitle>
+                  <CardTitle>Rejection Reason</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {supplier.notes}
+                    {supplier.rejectionReason}
                   </p>
                 </CardContent>
               </Card>
