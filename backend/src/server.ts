@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from "express";
 import { PrismaClient } from "prisma/generated/prisma/client.js";
 
@@ -13,6 +14,13 @@ import userRoutes from "./routes/user.routes.js";
 const app = express();
 const prisma = new PrismaClient();
 const port = SECRET_VARIABLES.port;
+
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 // Global middlewares
 app.use(cookieParser(), express.json(), express.urlencoded({ extended: true }));
