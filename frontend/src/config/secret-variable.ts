@@ -3,5 +3,5 @@ interface Variables {
 }
 
 export const SECRET_VARIABLES: Variables = {
-  api_url: import.meta.env.VITE_API_URL || "http://localhost:3030",
+  api_url: import.meta.env.VITE_API_URL || "http://localhost:4000",
 };

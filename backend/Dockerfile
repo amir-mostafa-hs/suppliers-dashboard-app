@@ -19,8 +19,5 @@ COPY . .
 # Build the TypeScript project to JavaScript
 RUN pnpm build
 
-# Expose the port the app runs on
-EXPOSE 3000
-
 # Run the application
 CMD [ "pnpm", "start" ]
