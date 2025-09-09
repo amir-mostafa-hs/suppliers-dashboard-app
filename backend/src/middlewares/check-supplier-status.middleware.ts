@@ -1,5 +1,6 @@
+import { PrismaClient } from "@prisma/client";
+
 import type { NextFunction, Response } from "express";
-import { PrismaClient } from "prisma/generated/prisma/client.js";
 
 import type { AuthenticatedRequest } from "./auth.middleware.js";
 

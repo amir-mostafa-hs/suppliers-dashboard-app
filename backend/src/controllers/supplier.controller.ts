@@ -1,9 +1,10 @@
+import { PrismaClient, Role, type SupplierDocument } from "@prisma/client";
+
 import type { Request, Response } from "express";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
-import { PrismaClient, Role, type SupplierDocument } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
 import { SECRET_VARIABLES } from "../config/secret-variable.js";

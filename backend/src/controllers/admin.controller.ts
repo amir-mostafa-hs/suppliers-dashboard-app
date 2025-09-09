@@ -1,5 +1,6 @@
+import { PrismaClient, Role, type SupplierProfile, SupplierStatus, type User } from "@prisma/client";
+
 import type { Response } from "express";
-import { PrismaClient, Role, type SupplierProfile, SupplierStatus, type User } from "prisma/generated/prisma/client.js";
 
 import logger from "../config/logger.js";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";

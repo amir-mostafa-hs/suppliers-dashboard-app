@@ -1,6 +1,7 @@
+import { Role, type SupplierDocument, type User } from "@prisma/client";
+
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { Role, type SupplierDocument, type User } from "prisma/generated/prisma/client.js";
 
 import { SECRET_VARIABLES } from "../config/secret-variable.js";
 

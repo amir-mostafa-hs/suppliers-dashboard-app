@@ -1,7 +1,8 @@
+import { PrismaClient } from "@prisma/client";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { PrismaClient } from "prisma/generated/prisma/client.js";
 
 import logger from "./config/logger.js";
 import { SECRET_VARIABLES } from "./config/secret-variable.js";
